@@ -140,7 +140,6 @@ if opcion == "📚 Introducción y Fundamentos":
     st.info("¡Usa el menú lateral para seleccionar una simulación y experimentar virtualmente!")
 
 # ------------------------------------------------------------
----
 # ------------------------------------------------------------
 
 elif opcion == "1️⃣ Torque y Cinemática Rotacional":
@@ -246,7 +245,6 @@ elif opcion == "1️⃣ Torque y Cinemática Rotacional":
         """)
 
 # ------------------------------------------------------------
----
 # ------------------------------------------------------------
 
 elif opcion == "2️⃣ Masa Colgante y Cilindro Fijo":
@@ -292,7 +290,6 @@ elif opcion == "2️⃣ Masa Colgante y Cilindro Fijo":
         """)
 
 # ------------------------------------------------------------
----
 # ------------------------------------------------------------
 
 elif opcion == "3️⃣ Conservación del Momento Angular":
@@ -366,7 +363,6 @@ elif opcion == "3️⃣ Conservación del Momento Angular":
         st.info(f"**El sistema se mantiene en equilibrio:** $I$ y $\\omega$ no cambian.")
 
 # ------------------------------------------------------------
----
 # ------------------------------------------------------------
 
 elif opcion == "4️⃣ Rodadura en Plano Inclinado (Extendido)":
