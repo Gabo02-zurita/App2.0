@@ -103,7 +103,6 @@ if opcion == "📚 Introducción y Fundamentos":
     st.info("¡Usa el menú lateral para seleccionar una simulación!")
 
 # ------------------------------------------------------------
----
 # ------------------------------------------------------------
 
 elif opcion == "1️⃣ Torque y Cinemática Rotacional":
@@ -176,7 +175,7 @@ elif opcion == "1️⃣ Torque y Cinemática Rotacional":
     """)
 
 # ------------------------------------------------------------
----
+
 # ------------------------------------------------------------
 
 elif opcion == "2️⃣ Masa Colgante y Cilindro Fijo":
@@ -220,7 +219,6 @@ elif opcion == "2️⃣ Masa Colgante y Cilindro Fijo":
     """)
 
 # ------------------------------------------------------------
----
 # ------------------------------------------------------------
 
 elif opcion == "3️⃣ Conservación del Momento Angular":
@@ -268,7 +266,6 @@ elif opcion == "3️⃣ Conservación del Momento Angular":
     """)
 
 # ------------------------------------------------------------
----
 # ------------------------------------------------------------
 
 elif opcion == "4️⃣ Rodadura en Plano Inclinado (Extendido)":
@@ -328,23 +325,3 @@ elif opcion == "4️⃣ Rodadura en Plano Inclinado (Extendido)":
     * **Ganador:** La **Esfera Sólida** (C=0.4) gana la carrera porque tiene la menor distribución de masa lejos del eje. El **Cilindro Hueco (Anillo)** (C=1.0) es el más lento.
     * **Independiente de la Masa/Radio:** Sorprendentemente, la aceleración y el tiempo **no dependen de la masa ($M$) ni del radio ($R$!)**; solo dependen de la *forma* ($C$) y el ángulo.
     """)
-
-# ------------------------------------------------------------
----
-# ----------------- Instrucciones de Implementación -----------------
-
-## 📝 Instrucciones de Implementación
-
-Para ejecutar esta aplicación en tu entorno local:
-
-1.  **Guarda el Código:** Guarda el código anterior en un archivo llamado `app_rotacion.py`.
-2.  **Abre la Terminal:** Navega hasta el directorio donde guardaste el archivo usando tu terminal (o Símbolo del Sistema/PowerShell).
-3.  **Ejecuta Streamlit:** Escribe el siguiente comando y presiona Enter:
-
-    ```bash
-    streamlit run app_rotacion.py
-    ```
-
-4.  **Abre el Navegador:** Streamlit abrirá automáticamente la aplicación en tu navegador web. Si no lo hace, copia la URL que aparece en la terminal (normalmente `http://localhost:8501`).
-
-¡Felicidades! Ahora tienes una aplicación interactiva completa para explorar la rotación de sólidos rígidos. ¿Hay algún detalle en alguna de las simulaciones que te gustaría ajustar o que te explique más a fondo?
