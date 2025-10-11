@@ -107,9 +107,9 @@ def get_rotated_cylinder_data(x_base, y_base, z_base, angle):
 st.set_page_config(layout="wide", page_title="Rotación de Cuerpos Rígidos (Sears Zemansky)")
 
 st.title("Asistente Interactivo: Rotación de Cuerpos Rígidos 🌀")
-st.write("Simulaciones basadas en los Capítulos 9 y 10 de *Física Universitaria* (Sears, Zemansky, Freedman).")
+st.write("Simulaciones basadas en los Capítulos **9** y **10** de *Física Universitaria* (Sears, Zemansky, Freedman).")
 
-# Selector de simulación en la barra lateral con iconos
+# Selector de simulación en la barra lateral (CORREGIDO: Eliminado el argumento 'icons')
 opcion = st.sidebar.selectbox(
     "Selecciona la Simulación:",
     (
@@ -118,14 +118,7 @@ opcion = st.sidebar.selectbox(
         "2️⃣ Energía: Cilindro con Masa Colgante",
         "3️⃣ Conservación del Momento Angular (Patinador)",
         "4️⃣ Casos Extendidos y Rodadura"
-    ),
-    icons=[
-        "book", 
-        "arrow-repeat", 
-        "battery-charging", 
-        "person-circle", 
-        "box-seam"
-    ]
+    )
 )
 
 # ----------------- Contenido de las Secciones -----------------
@@ -149,7 +142,7 @@ if opcion == "📚 Conceptos Fundamentales":
 
 elif opcion == "1️⃣ Dinámica y Cinemática Rotacional":
     st.header("1. Dinámica y Cinemática Rotacional: Torque Aplicado 🔄")
-    st.markdown("Calcula el **Momento de Inercia ($I$)** y simula la rotación bajo un **torque ($\\tau$)** constante. Observa el cambio en $\\omega$, $\\theta$ y el número de vueltas en tiempo real.")
+    st.markdown("Calcula el **Momento de Inercia ($I$)** y simula la rotación bajo un **torque ($\\tau$)** constante. Observa el cambio en $\\omega$, $\\theta$ y el número de vueltas en **tiempo real**.")
 
     # Controles de entrada
     col1, col2, col3 = st.columns(3)
@@ -313,8 +306,11 @@ elif opcion == "2️⃣ Energía: Cilindro con Masa Colgante":
             animation_steps = 50
             
             for i in range(animation_steps):
-                current_time = df_ener['Tiempo (s)'].iloc[i * (len(df_ener) // animation_steps)]
-                h_caida = df_ener['Caída (m)'].iloc[i * (len(df_ener) // animation_steps)]
+                # Aseguramos no salir del rango del DataFrame
+                index = min(i * (len(df_ener) // animation_steps), len(df_ener) - 1)
+                
+                current_time = df_ener['Tiempo (s)'].iloc[index]
+                h_caida = df_ener['Caída (m)'].iloc[index]
                 
                 # Cinemática para la rotación del cilindro
                 theta_t = alfa * current_time * current_time * 0.5
@@ -389,7 +385,6 @@ elif opcion == "3️⃣ Conservación del Momento Angular (Patinador)":
 
     with col_vis:
         st.subheader("Comparación de Inercia y Velocidad")
-        # Visualización simple de la inercia (Radio)
         st.markdown(f"""
         | **Variable** | **Inicial ($R_i={R_ext_i:.1f}$m)** | **Final ($R_f={R_ext_f:.1f}$m)** |
         | :---: | :---: | :---: |
@@ -408,11 +403,11 @@ elif opcion == "3️⃣ Conservación del Momento Angular (Patinador)":
         st.latex(f"\\Delta K = K_{{f}} - K_{{i}} = {delta_K:.4f} \\, \\text{{J}}")
         
         fig_L = go.Figure(data=[
-            go.Bar(name='Inercia (I)', x=['Inicial', 'Final'], y=[I_i, I_f], yaxis='y1', offsetgroup=1),
-            go.Bar(name='Velocidad (ω)', x=['Inicial', 'Final'], y=[w_i, w_f], yaxis='y2', offsetgroup=2)
+            go.Bar(name='Inercia (I)', x=['Inicial', 'Final'], y=[I_i, I_f], yaxis='y1', offsetgroup=1, marker_color='skyblue'),
+            go.Bar(name='Velocidad (ω)', x=['Inicial', 'Final'], y=[w_i, w_f], yaxis='y2', offsetgroup=2, marker_color='lightcoral')
         ])
         fig_L.update_layout(
-            title='Relación Inversa I vs. ω',
+            title='Relación Inversa I vs. ω (Momento Angular Constante)',
             yaxis=dict(title='Inercia (kg·m²)', side='left', showgrid=False),
             yaxis2=dict(title='Velocidad Angular (rad/s)', overlaying='y', side='right', showgrid=False)
         )
@@ -430,7 +425,7 @@ elif opcion == "4️⃣ Casos Extendidos y Rodadura":
     # --- Pestaña 1: Rodadura en Plano Inclinado ---
     with tab1:
         st.subheader("Carrera de Inercia: ¿Quién Rueda Más Rápido? 🥇")
-        st.markdown("En una rodadura sin deslizamiento, la aceleración depende de la distribución de la masa (el factor $c = I_{{cm}}/MR^2$).")
+        st.markdown("Compara la **aceleración del centro de masa ($a_{cm}$)** de diferentes geometrías. ¡El que tenga la menor **inercia relativa** ($c$) gana!")
         
         col_r1, col_r2 = st.columns(2)
         with col_r1:
@@ -463,14 +458,14 @@ elif opcion == "4️⃣ Casos Extendidos y Rodadura":
             
         df_carrera = pd.DataFrame(datos_carrera).sort_values(by='Tiempo de Bajada (s)', ascending=True).reset_index(drop=True)
         
-        st.dataframe(df_carrera, use_container_width=True)
+        st.dataframe(df_carrera, use_container_width=True, hide_index=True)
         
-        st.info(f"El ganador es: **{df_carrera.iloc[0]['Forma']}**, pues tiene la menor inercia relativa ($c$) y tarda solo {df_carrera.iloc[0]['Tiempo de Bajada (s)']:.2f} segundos en bajar.")
+        st.info(f"El ganador es: **{df_carrera.iloc[0]['Forma']}**, que tarda {df_carrera.iloc[0]['Tiempo de Bajada (s)']:.2f} segundos.")
 
     # --- Pestaña 2: Eje con Discos Acoplados ---
     with tab2:
         st.subheader("Colisión Angular Inelástica (Acoplamiento de Discos) 🔗")
-        st.markdown("El Momento Angular se conserva ($L_i=L_f$), pero la energía se pierde en forma de calor y sonido durante la fricción del acoplamiento ($K_f < K_i$).")
+        st.markdown("El **Momento Angular se conserva** ($L_i=L_f$), pero la energía se pierde ($K_f < K_i$) debido a la fricción durante el acoplamiento.")
         
         col_c1, col_c2 = st.columns(2)
         with col_c1:
@@ -500,7 +495,7 @@ elif opcion == "4️⃣ Casos Extendidos y Rodadura":
     # --- Pestaña 3: Cálculo de Energías en Rotación ---
     with tab3:
         st.subheader("Cálculo de Energía Cinética Total ($K_{{Total}}$)")
-        st.markdown("Sección que separa las contribuciones de traslación y rotación para un cuerpo en movimiento (Cap. 9).")
+        st.markdown("Separa las contribuciones de **traslación** ($K_{{tras}}$) y **rotación** ($K_{{rot}}$) para un cuerpo en movimiento (Cap. 9).")
         
         col_e1, col_e2 = st.columns(2)
         with col_e1:
