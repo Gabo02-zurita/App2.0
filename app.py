@@ -429,8 +429,9 @@ elif opcion == "4️⃣ Rodadura en Plano Inclinado (Energía y Aceleración)":
         st.subheader("Explicación Física (Cap. 10.3) 🏆")
         st.markdown(f"""
         * **Aceleración del Centro de Masa ($a_{{\\text{{cm}}}}$):** Está dada por la relación:
-        """) # Se cierra la cadena de markdown aquí
-        st.latex(r"a_{\text{cm}} = \frac{g \sin(\theta)}{1 + c}") # La fórmula LaTeX va en su propio st.latex
+        """)
+        # Usamos st.latex() para evitar problemas de sintaxis con la barra invertida en f-strings multilinea.
+        st.latex(r"a_{\text{cm}} = \frac{g \sin(\theta)}{1 + c}") 
         st.markdown(f"""
         Donde $c = I_{{\\text{{cm}}}} / MR^2$.
         * **Conclusión (Ejemplo 10.5):** El cuerpo con el valor de **$c$ más pequeño** llega primero. Esto se debe a que una $c$ pequeña significa que una fracción menor de la energía potencial inicial se convierte en $K_{\\text{rot}}$ y una fracción mayor se convierte en $K_{\\text{tras}}$, lo que resulta en una mayor velocidad lineal $v_{\\text{cm}}$ y, por lo tanto, en un menor tiempo de descenso.
