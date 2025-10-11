@@ -25,7 +25,7 @@ def simular_torque(I, tau, t_max, dt=0.05):
     if I == 0:
         return pd.DataFrame(), 0.0
 
-    # Segunda Ley de Newton para la Rotación: tau = I * alpha [cite: 11]
+    # Segunda Ley de Newton para la Rotación: tau = I * alpha
     alfa = tau / I  # Aceleración angular constante
     
     tiempo = np.arange(0, t_max + dt, dt) 
@@ -66,12 +66,12 @@ def simular_masa_colgante(m_masa, R_cil, M_cil, t_max, dt=0.05):
     tiempo = np.arange(0, t_max + dt, dt)
     h = 0.5 * a * tiempo**2  # Distancia que cae la masa
     
-    # Energía Cinética Rotacional (K_rot = 0.5 * I * omega^2) [cite: 2]
+    # Energía Cinética Rotacional (K_rot = 0.5 * I * omega^2)
     K_rot = 0.5 * I_cil * (alfa * tiempo)**2  
     # Energía Cinética Traslacional (K_tras = 0.5 * m * v^2)
     K_tras = 0.5 * m_masa * (a * tiempo)**2  
     
-    # Energía Potencial Gravitacional (U = Mgy_cm, Cap. 9) [cite: 3]
+    # Energía Potencial Gravitacional (U = Mgy_cm, Cap. 9)
     h_max_caida = 0.5 * a * t_max**2
     U_grav_actual = m_masa * g * (h_max_caida - h)
     
@@ -133,21 +133,21 @@ opcion = st.sidebar.selectbox(
 if opcion == "📚 Conceptos Fundamentales (Cap. 9 y 10)":
     st.header("Conceptos Clave de Dinámica y Cinemática Rotacional")
     st.markdown("""
-    La **rotación de un cuerpo rígido** se describe mediante análogos a las cantidades lineales[cite: 1].
+    La **rotación de un cuerpo rígido** se describe mediante análogos a las cantidades lineales.
 
-    * **Momento de Inercia ($I$):** Es la resistencia del cuerpo a los cambios en su movimiento rotacional[cite: 2].
+    * **Momento de Inercia ($I$):** Es la resistencia del cuerpo a los cambios en su movimiento rotacional.
         $$\\text{Definición: } I = \\sum_i m_i r_i^2$$
-        Se mide en $\\text{kg} \\cdot \\text{m}^2$[cite: 2].
+        Se mide en $\\text{kg} \\cdot \\text{m}^2$.
 
-    * **Torque ($\\tau$):** Análogo rotacional de la fuerza[cite: 11]. Causa cambios en la velocidad angular.
+    * **Torque ($\\tau$):** Análogo rotacional de la fuerza. Causa cambios en la velocidad angular.
         $$\\text{Segunda Ley de Newton para Rotación: } \\sum \\tau = I \\alpha$$
 
     * **Energía Cinética Rotacional ($K$):** La energía asociada a la rotación.
-        $$K = \\frac{1}{2} I \\omega^2$$ [cite: 2]
+        $$K = \\frac{1}{2} I \\omega^2$$
 
-    * **Momento Angular ($L$):** El análogo rotacional del momento lineal ($p$)[cite: 9].
-        $$\\text{Para un cuerpo rígido: } L = I \\omega$$ [cite: 9]
-        La conservación ocurre si el torque externo neto es cero: $L_{\\text{ini}} = L_{\\text{final}}$[cite: 10].
+    * **Momento Angular ($L$):** El análogo rotacional del momento lineal ($p$).
+        $$\\text{Para un cuerpo rígido: } L = I \\omega$$
+        La conservación ocurre si el torque externo neto es cero: $L_{\\text{ini}} = L_{\\text{final}}$.
     """)
     st.info("¡Usa el menú lateral para seleccionar una simulación y experimentar virtualmente!")
 
@@ -156,7 +156,7 @@ if opcion == "📚 Conceptos Fundamentales (Cap. 9 y 10)":
 
 elif opcion == "1️⃣ Torque y Dinámica Rotacional ($\\tau = I\\alpha$)":
     st.header("1. Dinámica Rotacional: Aplicación de Torque Constante")
-    st.markdown("Aplica un torque constante a una geometría. Analizamos la aceleración angular ($\\alpha$) resultante y cómo cambian la velocidad y el ángulo (Cinemática Rotacional, Cap. 9)[cite: 1, 11].")
+    st.markdown("Aplica un torque constante a una geometría. Analizamos la aceleración angular ($\\alpha$) resultante y cómo cambian la velocidad y el ángulo (Cinemática Rotacional, Cap. 9).")
 
     # Controles de entrada DIGITALIZADOS
     col1, col2, col3 = st.columns(3)
@@ -248,7 +248,7 @@ elif opcion == "1️⃣ Torque y Dinámica Rotacional ($\\tau = I\\alpha$)":
 
 elif opcion == "2️⃣ Trabajo y Energía en Rotación (K = 1/2 I $\\omega^2$)":
     st.header("2. Energía en Rotación: Cilindro Fijo con Masa Colgante")
-    st.markdown("Analizamos la conversión de la **Energía Potencial Gravitacional** ($U=Mgy_{cm}$) en **Energía Cinética de Traslación** y **Energía Cinética Rotacional** ($K=1/2 I \\omega^2$)[cite: 2, 3].")
+    st.markdown("Analizamos la conversión de la **Energía Potencial Gravitacional** ($U=Mgy_{cm}$) en **Energía Cinética de Traslación** y **Energía Cinética Rotacional** ($K=1/2 I \\omega^2$).")
     
     # Controles de entrada DIGITALIZADOS
     col1, col2 = st.columns(2)
@@ -287,9 +287,9 @@ elif opcion == "2️⃣ Trabajo y Energía en Rotación (K = 1/2 I $\\omega^2$)"
         st.subheader("Explicación del Flujo de Energía")
         st.markdown("""
         * **Conservación de la Energía:** La Energía Total del sistema se **conserva (línea horizontal)** ya que el trabajo realizado por la fricción es despreciable en este sistema ideal.
-        * **Transformación:** La **Energía Potencial Gravitacional** del bloque ($U = mgh$) [cite: 3] se transforma continuamente en:
+        * **Transformación:** La **Energía Potencial Gravitacional** del bloque ($U = mgh$) se transforma continuamente en:
             1.  Energía Cinética de Traslación del bloque ($K_{\\text{tras}} = 1/2 m v^2$).
-            2.  Energía Cinética Rotacional del cilindro ($K_{\\text{rot}} = 1/2 I \\omega^2$)[cite: 2].
+            2.  Energía Cinética Rotacional del cilindro ($K_{\\text{rot}} = 1/2 I \\omega^2$).
         """)
 
 # ------------------------------------------------------------
@@ -297,7 +297,7 @@ elif opcion == "2️⃣ Trabajo y Energía en Rotación (K = 1/2 I $\\omega^2$)"
 
 elif opcion == "3️⃣ Conservación del Momento Angular ($L = I\\omega$)":
     st.header("3. Conservación del Momento Angular: El Patinador o la Placa de Embrague")
-    st.markdown("Modelamos un sistema donde el **Momento Angular ($L$) se conserva** porque el torque externo neto es cero ($\sum \\tau_{\\text{ext}} = 0$)[cite: 10]. Al cambiar el Momento de Inercia ($I$) por un movimiento interno (ej. brazos), la **Velocidad Angular ($\omega$)** debe cambiar para mantener $L = I\\omega$ constante[cite: 9].")
+    st.markdown("Modelamos un sistema donde el **Momento Angular ($L$) se conserva** porque el torque externo neto es cero ($\sum \\tau_{\\text{ext}} = 0$). Al cambiar el Momento de Inercia ($I$) por un movimiento interno (ej. brazos), la **Velocidad Angular ($\omega$)** debe cambiar para mantener $L = I\\omega$ constante.")
     
     st.markdown("---")
     st.subheader("Configuración del Sistema (Valores Digitales)")
@@ -324,13 +324,13 @@ elif opcion == "3️⃣ Conservación del Momento Angular ($L = I\\omega$)":
     I_inicial = I_cuerpo + 2 * m_brazo * r_ini**2
     I_final = I_cuerpo + 2 * m_brazo * r_final**2
     
-    # Momento Angular (L se conserva) [cite: 10]
+    # Momento Angular (L se conserva)
     L = I_inicial * omega_ini
     
     # Velocidad Angular Final: I_ini * omega_ini = I_final * omega_final
     omega_final = L / I_final if I_final != 0 else 0
     
-    # Energías Cinéticas de Rotación (K = 0.5 * I * omega^2) [cite: 2]
+    # Energías Cinéticas de Rotación (K = 0.5 * I * omega^2)
     K_ini = 0.5 * I_inicial * omega_ini**2
     K_final = 0.5 * I_final * omega_final**2
 
@@ -356,7 +356,7 @@ elif opcion == "3️⃣ Conservación del Momento Angular ($L = I\\omega$)":
 
     if r_final < r_ini:
         st.error(f"**El Patinador Acelera:** $\\omega$ aumentó de ${omega_ini:.2f}$ rad/s a **${omega_final:.2f}$ rad/s**.")
-        st.warning(f"El trabajo realizado por las fuerzas internas para acercar la masa incrementa la **Energía Cinética Rotacional** ($K_{{final}} > K_{{inicial}}$), aunque el Momento Angular se conserva[cite: 9].")
+        st.warning(f"El trabajo realizado por las fuerzas internas para acercar la masa incrementa la **Energía Cinética Rotacional** ($K_{{final}} > K_{{inicial}}$), aunque el Momento Angular se conserva.")
     elif r_final > r_ini:
         st.error(f"**El Patinador Frena:** $\\omega$ disminuyó de ${omega_ini:.2f}$ rad/s a **${omega_final:.2f}$ rad/s**.")
         st.warning(f"La extensión de los brazos reduce la Energía Cinética Rotacional del sistema ($K_{{final}} < K_{{inicial}}$).")
@@ -369,7 +369,7 @@ elif opcion == "3️⃣ Conservación del Momento Angular ($L = I\\omega$)":
 
 elif opcion == "4️⃣ Rodadura en Plano Inclinado (Energía y Aceleración)":
     st.header("4. Rodadura de Cuerpos Rígidos en un Plano Inclinado")
-    st.markdown("Analizamos la rodadura sin deslizamiento, donde la energía total se conserva[cite: 8]. La **Energía Cinética Total** es la suma de la traslacional del centro de masa y la rotacional en torno al centro de masa: $K = K_{\\text{tras}} + K_{\\text{rot}}$[cite: 7].")
+    st.markdown("Analizamos la rodadura sin deslizamiento, donde la energía total se conserva. La **Energía Cinética Total** es la suma de la traslacional del centro de masa y la rotacional en torno al centro de masa: $K = K_{\\text{tras}} + K_{\\text{rot}}$.")
     
     # Controles de entrada DIGITALIZADOS
     col1, col2 = st.columns(2)
@@ -397,7 +397,7 @@ elif opcion == "4️⃣ Rodadura en Plano Inclinado (Energía y Aceleración)":
         
         for forma, C in formas_C.items():
             # Aceleración lineal para rodadura pura (Resultado del Cap. 10.3, Ejemplo 10.5)
-            # a_cm = g * sin(theta) / (1 + c) [cite: 8]
+            # a_cm = g * sin(theta) / (1 + c)
             a = (g * np.sin(theta_rad)) / (1 + C)
             
             if a > 1e-6: 
@@ -428,9 +428,11 @@ elif opcion == "4️⃣ Rodadura en Plano Inclinado (Energía y Aceleración)":
 
         st.subheader("Explicación Física (Cap. 10.3) 🏆")
         st.markdown(f"""
-        * **Aceleración del Centro de Masa ($a_{\\text{cm}}$):** Está dada por la relación:
-        $$a_{{\\text{{cm}}}} = \\frac{{g \\sin(\\theta)}}{{1 + c}}$$
+        * **Aceleración del Centro de Masa ($a_{{\\text{{cm}}}}$):** Está dada por la relación:
+        """) # Se cierra la cadena de markdown aquí
+        st.latex(r"a_{\text{cm}} = \frac{g \sin(\theta)}{1 + c}") # La fórmula LaTeX va en su propio st.latex
+        st.markdown(f"""
         Donde $c = I_{{\\text{{cm}}}} / MR^2$.
-        * **Conclusión (Ejemplo 10.5):** El cuerpo con el valor de **$c$ más pequeño** llega primero[cite: 8]. Esto se debe a que una $c$ pequeña significa que una fracción menor de la energía potencial inicial se convierte en $K_{\\text{rot}}$ y una fracción mayor se convierte en $K_{\\text{tras}}$, lo que resulta en una mayor velocidad lineal $v_{\\text{cm}}$ y, por lo tanto, en un menor tiempo de descenso.
+        * **Conclusión (Ejemplo 10.5):** El cuerpo con el valor de **$c$ más pequeño** llega primero. Esto se debe a que una $c$ pequeña significa que una fracción menor de la energía potencial inicial se convierte en $K_{\\text{rot}}$ y una fracción mayor se convierte en $K_{\\text{tras}}$, lo que resulta en una mayor velocidad lineal $v_{\\text{cm}}$ y, por lo tanto, en un menor tiempo de descenso.
         * **Independencia:** La aceleración lineal **no depende de la masa $M$ ni del radio $R$** del objeto, solo de su forma geométrica ($c$).
         """)
