@@ -285,11 +285,12 @@ elif opcion == "2️⃣ Trabajo y Energía en Rotación (K = 1/2 I $\\omega^2$)"
         st.plotly_chart(fig_ener, use_container_width=True)
         
         st.subheader("Explicación del Flujo de Energía")
-        st.markdown("""
+        # Corrección: Uso de f-string simple sin escape doble
+        st.markdown(f"""
         * **Conservación de la Energía:** La Energía Total del sistema se **conserva (línea horizontal)** ya que el trabajo realizado por la fricción es despreciable en este sistema ideal.
         * **Transformación:** La **Energía Potencial Gravitacional** del bloque ($U = mgh$) se transforma continuamente en:
-            1.  Energía Cinética de Traslación del bloque ($K_{\\text{tras}} = 1/2 m v^2$).
-            2.  Energía Cinética Rotacional del cilindro ($K_{\\text{rot}} = 1/2 I \\omega^2$).
+            1.  Energía Cinética de Traslación del bloque ($K_{tras} = 1/2 m v^2$).
+            2.  Energía Cinética Rotacional del cilindro ($K_{rot} = 1/2 I \omega^2$).
         """)
 
 # ------------------------------------------------------------
@@ -356,9 +357,11 @@ elif opcion == "3️⃣ Conservación del Momento Angular ($L = I\\omega$)":
 
     if r_final < r_ini:
         st.error(f"**El Patinador Acelera:** $\\omega$ aumentó de ${omega_ini:.2f}$ rad/s a **${omega_final:.2f}$ rad/s**.")
+        # Corrección: Uso de f-string simple sin escape doble
         st.warning(f"El trabajo realizado por las fuerzas internas para acercar la masa incrementa la **Energía Cinética Rotacional** ($K_{{final}} > K_{{inicial}}$), aunque el Momento Angular se conserva.")
     elif r_final > r_ini:
         st.error(f"**El Patinador Frena:** $\\omega$ disminuyó de ${omega_ini:.2f}$ rad/s a **${omega_final:.2f}$ rad/s**.")
+        # Corrección: Uso de f-string simple sin escape doble
         st.warning(f"La extensión de los brazos reduce la Energía Cinética Rotacional del sistema ($K_{{final}} < K_{{inicial}}$).")
     else:
         st.info(f"**El sistema se mantiene en equilibrio:** $I$ y $\\omega$ no cambian.")
@@ -430,10 +433,11 @@ elif opcion == "4️⃣ Rodadura en Plano Inclinado (Energía y Aceleración)":
         st.markdown(f"""
         * **Aceleración del Centro de Masa ($a_{{\\text{{cm}}}}$):** Está dada por la relación:
         """)
-        # Usamos st.latex() para evitar problemas de sintaxis con la barra invertida en f-strings multilinea.
+        # Usamos st.latex() para la fórmula grande
         st.latex(r"a_{\text{cm}} = \frac{g \sin(\theta)}{1 + c}") 
+        # Corrección: Uso de f-string simple sin escape doble
         st.markdown(f"""
-        Donde $c = I_{{\\text{{cm}}}} / MR^2$.
-        * **Conclusión (Ejemplo 10.5):** El cuerpo con el valor de **$c$ más pequeño** llega primero. Esto se debe a que una $c$ pequeña significa que una fracción menor de la energía potencial inicial se convierte en $K_{\\text{rot}}$ y una fracción mayor se convierte en $K_{\\text{tras}}$, lo que resulta en una mayor velocidad lineal $v_{\\text{cm}}$ y, por lo tanto, en un menor tiempo de descenso.
+        Donde $c = I_{{cm}} / MR^2$.
+        * **Conclusión (Ejemplo 10.5):** El cuerpo con el valor de **$c$ más pequeño** llega primero. Esto se debe a que una $c$ pequeña significa que una fracción menor de la energía potencial inicial se convierte en $K_{rot}$ y una fracción mayor se convierte en $K_{tras}$, lo que resulta en una mayor velocidad lineal $v_{cm}$ y, por lo tanto, en un menor tiempo de descenso.
         * **Independencia:** La aceleración lineal **no depende de la masa $M$ ni del radio $R$** del objeto, solo de su forma geométrica ($c$).
         """)
