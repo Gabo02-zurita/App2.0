@@ -1,310 +1,350 @@
 import streamlit as st
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import plotly.graph_objects as go
 import plotly.express as px
+import pandas as pd
 
-# --- Configuración Inicial de la Página ---
-st.set_page_config(
-    page_title="Dinámica de Rotación de Sólidos Rígidos",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+# ----------------- Funciones de Cálculo para las Simulaciones -----------------
 
-st.title("⚙️ Aplicación Interactiva: Dinámica del Sólido Rígido")
-st.markdown("""
-Esta herramienta modela y explica fenómenos clave de la rotación, utilizando la física clásica y visualizaciones interactivas.
-""")
-
-# --------------------------------------------------------------------------------------
-# 1. Funciones Físicas de Soporte
-# --------------------------------------------------------------------------------------
-
-def momento_inercia(forma, masa, dimension):
-    """Calcula el momento de inercia I. 'dimension' es R para discos/cilindros o L para varilla."""
-    R = dimension
-    M = masa
-    
-    # Fórmulas de Momento de Inercia (I) para el eje de rotación central:
-    if forma == "Anillo/Cilindro Hueco":
-        return M * R**2
-    elif forma == "Cilindro Sólido/Disco":
-        return 0.5 * M * R**2
-    elif forma == "Varilla (Eje central)":
-        return (1/12) * M * R**2
+def calcular_momento_inercia(forma, masa, radio, longitud=None):
+    """Calcula el momento de inercia I para diferentes geometrías."""
+    if forma == "Disco/Cilindro Sólido":
+        return 0.5 * masa * radio**2
+    elif forma == "Cilindro Hueco (Anillo)":
+        return masa * radio**2
+    elif forma == "Varilla (Eje Central)":
+        return (1/12) * masa * longitud**2 if longitud else 0 # Se necesita longitud
     elif forma == "Esfera Sólida":
-        return 0.4 * M * R**2 # (2/5)MR^2
+        return (2/5) * masa * radio**2
     return 0
 
-def factor_inercial(forma):
-    """Retorna el factor C = I / (M*R^2) para rodadura."""
-    if forma == "Esfera Sólida":
-        return 0.4  # C = 2/5
-    elif forma == "Cilindro Sólido/Disco":
-        return 0.5  # C = 1/2
-    elif forma == "Anillo/Cilindro Hueco":
-        return 1.0  # C = 1
+def simular_torque(I, tau, t_max):
+    """Calcula variables cinemáticas para un torque constante."""
+    alfa = tau / I  # Aceleración angular constante
+    
+    tiempo = np.linspace(0, t_max, 100)
+    omega = alfa * tiempo  # Velocidad angular: omega = alfa * t
+    theta = 0.5 * alfa * tiempo**2  # Ángulo girado: theta = 0.5 * alfa * t^2
+    vueltas = theta / (2 * np.pi)  # Número de vueltas
+    
+    df = pd.DataFrame({
+        'Tiempo (s)': tiempo,
+        'Velocidad Angular (rad/s)': omega,
+        'Ángulo Girado (rad)': theta,
+        'Número de Vueltas': vueltas,
+        'Aceleración Angular (rad/s^2)': [alfa] * 100
+    })
+    return df, alfa
 
-# --------------------------------------------------------------------------------------
-# 2. Organización de la Aplicación en Pestañas
-# --------------------------------------------------------------------------------------
+def simular_masa_colgante(m_masa, R_cil, M_cil, t_max):
+    """Simula masa colgante que desenrolla un cable de un cilindro."""
+    I_cil = 0.5 * M_cil * R_cil**2  # Momento de inercia del cilindro
+    g = 9.81  # Aceleración de la gravedad
+    
+    # Cálculo de la aceleración lineal de la masa 'a'
+    # a = g / (1 + I / (m*R^2))
+    a = g / (1 + I_cil / (m_masa * R_cil**2))
+    
+    # Tensión del cable (T = m*(g-a))
+    T = m_masa * (g - a)
+    
+    # Aceleración angular del cilindro: alfa = a / R
+    alfa = a / R_cil
+    
+    # Energía: solo si la masa se mueve una distancia 'h'
+    tiempo = np.linspace(0, t_max, 100)
+    h = 0.5 * a * tiempo**2  # Distancia que cae la masa
+    
+    # Energías en función del tiempo
+    K_rot = 0.5 * I_cil * (alfa * tiempo)**2  # Energía Cinética Rotacional (E_rot = 0.5*I*omega^2)
+    K_tras = 0.5 * m_masa * (a * tiempo)**2  # Energía Cinética Traslacional (E_tras = 0.5*m*v^2)
+    U_grav = m_masa * g * h # Potencial gravitatoria
+    
+    df = pd.DataFrame({
+        'Tiempo (s)': tiempo,
+        'Energía Rotacional (J)': K_rot,
+        'Energía Traslacional (J)': K_tras,
+        'Energía Potencial (J)': U_grav,
+        'Energía Total (J)': K_rot + K_tras + (m_masa * g * h.max() - U_grav) # La energía potencial disminuye, tomamos la referencia inicial.
+    })
+    return df, a, alfa, T
 
-tab1, tab2, tab3, tab4 = st.tabs([
-    "1. Torque y $\mathbf{I}$ Variable",
-    "2. Masa Colgante (Polea)",
-    "3. Conservación del Momento Angular",
-    "4. Rodadura en Plano Inclinado (Caso Extendido)"
-])
+# ----------------- Configuración de la Interfaz Streamlit -----------------
 
-# ====================================================================
-# --- PESTAÑA 1: Torque Fijo y Momento de Inercia Variable ---
-# ====================================================================
-with tab1:
-    st.header("1. Rotación con Torque Constante ($\mathbf{\\tau} = I \\alpha$)")
+st.set_page_config(layout="wide", page_title="Rotación de Sólidos Rígidos")
+
+# Título principal y explicación
+st.title("Asistente Interactivo de Rotación de Sólidos Rígidos 🌀")
+st.write("Esta aplicación te ayudará a modelar, visualizar y entender fenómenos de la dinámica de rotación.")
+
+# Selector de simulación en la barra lateral
+opcion = st.sidebar.selectbox(
+    "Selecciona la Simulación:",
+    (
+        "📚 Introducción y Fundamentos",
+        "1️⃣ Torque y Cinemática Rotacional",
+        "2️⃣ Masa Colgante y Cilindro Fijo",
+        "3️⃣ Conservación del Momento Angular",
+        "4️⃣ Rodadura en Plano Inclinado (Extendido)"
+    )
+)
+
+# ----------------- Contenido de las Secciones -----------------
+
+if opcion == "📚 Introducción y Fundamentos":
+    st.header("Conceptos Clave de la Dinámica de Rotación")
     st.markdown("""
-    Explore cómo el **Momento de Inercia ($I$)** de un objeto influye en su **Aceleración Angular ($\alpha$)**
-    cuando se aplica un **Torque ($\tau$)** constante.
+    La **rotación de un sólido rígido** es el movimiento de un objeto en el que cada punto describe un círculo alrededor de un eje fijo. Los conceptos clave son:
+
+    * **Momento de Inercia ($I$):** Es la resistencia del objeto a cambiar su estado de movimiento rotacional (análogo a la masa en la traslación).
+    * **Torque ($\\tau$):** Es la fuerza que provoca el cambio en el movimiento rotacional (análogo a la fuerza $F$).
+    * **Segunda Ley de Newton para Rotación:** $\\tau = I \\alpha$ (análogo a $F = ma$).
+    * **Momento Angular ($L$):** Medida de la rotación de un objeto. Se conserva si el torque externo neto es cero ($\\tau_{neto} = 0$).
     """)
+    st.info("¡Usa el menú lateral para seleccionar una simulación!")
 
-    col_c1, col_c2 = st.columns([1, 2])
+# ------------------------------------------------------------
+---
+# ------------------------------------------------------------
 
-    with col_c1:
-        st.subheader("Controles Físicos")
-        forma_t1 = st.selectbox(
-            "Seleccione la Forma del Sólido:",
-            ["Cilindro Sólido/Disco", "Anillo/Cilindro Hueco", "Varilla (Eje central)"]
+elif opcion == "1️⃣ Torque y Cinemática Rotacional":
+    st.header("1. Simulación de Torque Constante y Cinemática 📈")
+    st.markdown("Aplica un torque constante a una forma geométrica para observar cómo varían sus parámetros de rotación con el tiempo.")
+
+    # Controles de entrada
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        forma = st.selectbox(
+            "Selecciona la Forma:",
+            ("Disco/Cilindro Sólido", "Cilindro Hueco (Anillo)", "Esfera Sólida", "Varilla (Eje Central)")
         )
-        masa_t1 = st.number_input("Masa (M, kg)", min_value=0.1, max_value=20.0, value=2.0, step=0.1)
-        radio_t1 = st.number_input("Dimensión (R/L, m)", min_value=0.1, max_value=5.0, value=0.5, step=0.1, help="Radio para cilindro/disco o Longitud para varilla.")
-        torque_t1 = st.number_input("Torque Aplicado ($\\tau$, N·m)", min_value=0.1, max_value=50.0, value=5.0, step=0.5)
-        tiempo_t1 = st.slider("Tiempo de Simulación (t, s)", 1.0, 10.0, 5.0, 0.5)
+    with col2:
+        masa = st.slider("Masa ($M$, kg):", 0.1, 10.0, 2.0, 0.1)
+        radio = st.slider("Radio ($R$, m):", 0.1, 1.0, 0.5, 0.05)
+    with col3:
+        torque = st.slider("Torque Aplicado ($\\tau$, N·m):", 0.1, 5.0, 1.0, 0.1)
+        t_max = st.slider("Tiempo de Simulación ($t_{max}$, s):", 1.0, 10.0, 5.0, 0.5)
+        
+    # La varilla requiere una longitud
+    longitud = None
+    if forma == "Varilla (Eje Central)":
+        longitud = st.slider("Longitud de la Varilla ($L$, m):", 0.1, 2.0, 1.0, 0.1)
 
-    # --- Cálculos ---
-    I_t1 = momento_inercia(forma_t1, masa_t1, radio_t1)
-    alfa_t1 = torque_t1 / I_t1 # Aceleración angular cte: alpha = tau / I
+    # --- Cálculos y Resultados ---
+    I = calcular_momento_inercia(forma, masa, radio, longitud)
+    df_sim, alfa = simular_torque(I, torque, t_max)
     
-    tiempo_eje = np.linspace(0, tiempo_t1, 100)
-    omega_t = alfa_t1 * tiempo_eje
-    angulo_t = 0.5 * alfa_t1 * tiempo_eje**2
-    vueltas_t = angulo_t / (2 * np.pi)
+    st.markdown("---")
+    st.subheader("Resultados Teóricos Clave")
+    st.latex(f"I = {I:.4f} \\, \\text{{kg}} \\cdot \\text{{m}}^2")
+    st.latex(f"\\tau = I \\alpha \\Rightarrow \\alpha = \\frac{{\\tau}}{{I}} = \\frac{{{torque:.2f}}}{{{I:.4f}}} = {alfa:.4f} \\, \\text{{rad/s}}^2")
+    st.latex(f"\\omega(t) = \\alpha t \\quad | \\quad \\theta(t) = \\frac{{1}}{{2}} \\alpha t^2")
+    
+    st.info(f"El objeto es una **{forma}** con un **Momento de Inercia ($I$)** de **{I:.4f} kg·m²**.")
 
-    with col_c2:
-        st.subheader("Resultados y Fundamentos Teóricos")
-        
-        st.info(f"**Momento de Inercia ($I$):** ${I_t1:.4f}$ kg·m²")
-        st.info(f"**Aceleración Angular ($\\alpha$):** ${alfa_t1:.4f}$ rad/s²")
-        
-        st.markdown(f"""
-        **Cálculos a $t = {tiempo_t1}s$:**
-        - **Velocidad Angular Final ($\omega$):** ${omega_t[-1]:.2f}$ rad/s
-        - **Ángulo Girado ($\\theta$):** ${angulo_t[-1]:.2f}$ rad
-        - **Número de Vueltas:** ${vueltas_t[-1]:.2f}$ vueltas
-        
-        ---
-        
-        **Explicación Física:**
-        La **Segunda Ley de Newton para la Rotación** ($\mathbf{\\tau} = I \\alpha$) establece que
-        un mayor momento de inercia ($I$) resulta en una menor aceleración angular ($\alpha$)
-        para el mismo torque aplicado ($\tau$). $I$ es una medida de la resistencia de un
-        objeto a cambiar su estado de movimiento rotacional.
-        """)
+    # --- Visualización Avanzada (Plotly) ---
+    st.subheader("Gráfica de Velocidad Angular vs. Tiempo (Plotly Interactivo)")
     
-    # --- Visualización Gráfica ---
-    st.subheader("Visualización del Movimiento Cinemático")
-    
-    fig_t1 = go.Figure()
-    fig_t1.add_trace(go.Scatter(x=tiempo_eje, y=omega_t, mode='lines', name='Velocidad Angular ($\omega$)', line=dict(color='blue')))
-    fig_t1.add_trace(go.Scatter(x=tiempo_eje, y=angulo_t, mode='lines', name='Ángulo Girado ($\\theta$)', line=dict(color='red', dash='dash')))
-    
-    fig_t1.update_layout(
-        xaxis_title="Tiempo (s)",
-        yaxis_title="Valor",
-        title="$\mathbf{\\omega}$ y $\mathbf{\\theta}$ vs. Tiempo (Movimiento Uniformemente Acelerado)",
-        hovermode="x unified",
-        height=400
+    fig = px.line(
+        df_sim, 
+        x='Tiempo (s)', 
+        y='Velocidad Angular (rad/s)', 
+        title=f'Velocidad Angular ($\omega$) vs. Tiempo ($\\alpha = {alfa:.4f}$ rad/s²)',
+        labels={'Velocidad Angular (rad/s)': 'Velocidad Angular $\omega$ (rad/s)'}
     )
-    st.plotly_chart(fig_t1, use_container_width=True)
+    fig.update_layout(hovermode="x unified")
+    st.plotly_chart(fig, use_container_width=True)
 
-# ====================================================================
-# --- PESTAÑA 2: Masa Colgante (Polea) ---
-# ====================================================================
-with tab2:
-    st.header("2. Cilindro Giratorio con Masa Colgante")
-    st.markdown("""
-    Modelo de una masa colgante que, al caer, desenrolla un cable y provoca la rotación
-    de un cilindro fijo (análogo a una máquina de Atwood rotacional).
-    El movimiento acopla la dinámica **traslacional** y **rotacional**.
+    # Gráfica adicional
+    st.subheader("Ángulo Girado y Vueltas vs. Tiempo")
+    
+    fig_theta = px.line(
+        df_sim, 
+        x='Tiempo (s)', 
+        y=['Ángulo Girado (rad)', 'Número de Vueltas'], 
+        title='Ángulo Girado ($\\theta$) y Número de Vueltas vs. Tiempo',
+        labels={'value': 'Magnitud'}
+    )
+    fig_theta.update_layout(hovermode="x unified")
+    st.plotly_chart(fig_theta, use_container_width=True)
+
+    st.subheader("Explicación Física")
+    st.markdown(f"""
+    * **Aceleración Angular ($\\alpha$):** Es **constante** e igual a **{alfa:.4f} rad/s²**, determinada por el torque aplicado ($\\tau$) y el momento de inercia ($I$).
+    * **Velocidad Angular ($\omega$):** Aumenta **linealmente** con el tiempo, ya que la aceleración es constante ($\\omega = \\alpha t$).
+    * **Ángulo Girado ($\\theta$):** Aumenta **cuadráticamente** con el tiempo, lo que se traduce en una curva parabólica en la gráfica ($\\theta = \\frac{1}{2} \\alpha t^2$).
     """)
 
-    col_m1, col_m2 = st.columns([1, 2])
-    g_m2 = 9.81
-    
-    with col_m1:
-        st.subheader("Parámetros del Sistema")
-        masa_cilindro_m2 = st.number_input("Masa del Cilindro (M, kg)", min_value=0.5, max_value=10.0, value=4.0, step=0.5)
-        radio_cilindro_m2 = st.number_input("Radio del Cilindro (R, m)", min_value=0.1, max_value=1.0, value=0.3, step=0.05)
-        masa_colgante_m2 = st.number_input("Masa Colgante (m, kg)", min_value=0.1, max_value=5.0, value=1.0, step=0.1)
-        altura_m2 = st.slider("Altura de Caída (h, m)", 0.5, 5.0, 2.0, 0.5)
+# ------------------------------------------------------------
+---
+# ------------------------------------------------------------
 
-    # --- Cálculos ---
-    # Asumimos Cilindro Sólido: I = 0.5 * M * R^2
-    I_m2 = 0.5 * masa_cilindro_m2 * radio_cilindro_m2**2
+elif opcion == "2️⃣ Masa Colgante y Cilindro Fijo":
+    st.header("2. Cilindro Fijo con Masa Colgante ⛓️")
+    st.markdown("Un cable enrollado alrededor de un cilindro fijo (eje de rotación) está unido a una masa que cae, analizando la dinámica y la energía del sistema.")
     
-    # Ecuación de la aceleración lineal (a):
-    # a = g / (1 + I / (m * R^2))
-    a_m2 = g_m2 / (1 + I_m2 / (masa_colgante_m2 * radio_cilindro_m2**2))
-    alpha_m2 = a_m2 / radio_cilindro_m2
-    
-    # Tiempo de caída: t = sqrt(2h / a)
-    tiempo_caida_m2 = np.sqrt(2 * altura_m2 / a_m2)
-    
-    # Tensión: T = m(g - a)
-    T_m2 = masa_colgante_m2 * (g_m2 - a_m2)
-    
-    with col_m2:
-        st.subheader("Resultados de la Dinámica")
-        
-        st.metric("Aceleración Lineal de la Masa ($a$)", f"{a_m2:.4f} m/s²")
-        st.metric("Aceleración Angular del Cilindro ($\\alpha$)", f"{alpha_m2:.4f} rad/s²")
-        st.metric("Tensión del Cable ($T$)", f"{T_m2:.4f} N")
-        st.metric("Tiempo Total de Caída", f"{tiempo_caida_m2:.2f} s")
-        
-        st.markdown(f"""
-        **Fundamentos:**
-        1. **Traslación ($m$):** $mg - T = ma$.
-        2. **Rotación ($M$):** $T R = I \\alpha$.
-        3. **Restricción (No desliza):** $a = \\alpha R$.
-        
-        La aceleración ($a$) es siempre menor que $g$ porque la **Tensión ($T$)** hace un trabajo negativo sobre la masa
-        y un trabajo positivo sobre el cilindro (generando la rotación). La energía potencial se convierte en energía
-        cinética **traslacional** y **rotacional**.
-        """)
+    # Controles de entrada
+    col1, col2 = st.columns(2)
+    with col1:
+        M_cil = st.slider("Masa del Cilindro ($M_{cil}$, kg):", 0.5, 5.0, 2.0, 0.1)
+        R_cil = st.slider("Radio del Cilindro ($R_{cil}$, m):", 0.1, 0.5, 0.2, 0.05)
+    with col2:
+        m_masa = st.slider("Masa Colgante ($m_{masa}$, kg):", 0.1, 2.0, 1.0, 0.1)
+        t_max = st.slider("Tiempo de Simulación ($t_{max}$, s):", 1.0, 5.0, 3.0, 0.5)
 
-# ====================================================================
-# --- PESTAÑA 3: Conservación del Momento Angular ---
-# ====================================================================
-with tab3:
-    st.header("3. Conservación del Momento Angular ($\mathbf{L} = I \\omega$)")
+    # --- Cálculos y Resultados ---
+    df_ener, a, alfa, T = simular_masa_colgante(m_masa, R_cil, M_cil, t_max)
+
+    st.markdown("---")
+    st.subheader("Resultados Teóricos Clave")
+    st.latex(f"a = {a:.4f} \\, \\text{{m/s}}^2 \\quad | \\quad \\alpha = {alfa:.4f} \\, \\text{{rad/s}}^2 \\quad | \\quad T = {T:.4f} \\, \\text{{N}}")
+    st.markdown(f"La **aceleración de la masa** es $a = {a:.4f} \\, \\text{{m/s}}^2$ y la **tensión del cable** es $T = {T:.4f} \\, \\text{{N}}$.")
+
+    # --- Visualización de Energía ---
+    st.subheader("Distribución de Energía vs. Tiempo")
+    
+    fig_ener = px.line(
+        df_ener, 
+        x='Tiempo (s)', 
+        y=['Energía Rotacional (J)', 'Energía Traslacional (J)', 'Energía Potencial (J)', 'Energía Total (J)'], 
+        title='Conversión de Energía Potencial a Cinética',
+        labels={'value': 'Energía (J)', 'variable': 'Tipo de Energía'}
+    )
+    fig_ener.update_layout(hovermode="x unified")
+    st.plotly_chart(fig_ener, use_container_width=True)
+    
+    st.subheader("Explicación Física y Energía")
     st.markdown("""
-    Modelación de un patinador o bailarín que cambia su distribución de masa (brazos) para
-    demostrar cómo la **Velocidad Angular ($\omega$)** debe cambiar para mantener el
-    **Momento Angular ($\mathbf{L}$) constante**.
+    * **Dinámica:** La tensión del cable ($T$) genera el torque en el cilindro ($\\tau = T \\cdot R$), mientras que la gravedad y la tensión actúan sobre la masa ($m_{masa} g - T = m_{masa} a$).
+    * **Conservación de la Energía:** Se asume que no hay fricción, por lo que la **Energía Total** del sistema se **conserva (línea horizontal)**. La **Energía Potencial** de la masa colgante ($U$) se transforma en **Energía Cinética Traslacional** de la masa ($K_{tras}$) y **Energía Cinética Rotacional** del cilindro ($K_{rot}$).
     """)
 
-    col_p1, col_p2 = st.columns([1, 2])
+# ------------------------------------------------------------
+---
+# ------------------------------------------------------------
 
-    with col_p1:
-        st.subheader("Parámetros del Patinador")
-        I_inicial = st.number_input("Momento de Inercia Inicial ($I_{in}$, brazos abiertos)", min_value=5.0, max_value=30.0, value=15.0, step=0.5)
-        I_final = st.number_input("Momento de Inercia Final ($I_{fin}$, brazos cerrados)", min_value=1.0, max_value=10.0, value=5.0, step=0.5)
-        omega_inicial = st.number_input("Velocidad Angular Inicial ($\omega_{in}$, rad/s)", min_value=0.1, max_value=5.0, value=1.0, step=0.1)
-
-    # --- Cálculos ---
-    # L_inicial = L_final  =>  I_inicial * omega_inicial = I_final * omega_final
-    omega_final = (I_inicial * omega_inicial) / I_final
+elif opcion == "3️⃣ Conservación del Momento Angular":
+    st.header("3. Conservación del Momento Angular (El Patinador) ⛸️")
+    st.markdown("Ilustra el principio de conservación del momento angular: si el torque externo neto es cero, el momento angular ($L$) se mantiene constante, incluso si el momento de inercia ($I$) cambia.")
     
-    # Energía Cinética: Ek = 0.5 * I * omega^2
-    Ek_inicial = 0.5 * I_inicial * omega_inicial**2
-    Ek_final = 0.5 * I_final * omega_final**2
+    st.markdown("---")
+    st.subheader("Variables del Patinador (o Plataforma Giratoria)")
     
-    aumento_velocidad = ((omega_final / omega_inicial) - 1) * 100
+    col1, col2 = st.columns(2)
+    with col1:
+        I_ini = st.slider("Momento de Inercia Inicial ($I_{ini}$, kg·m²):", 1.0, 10.0, 5.0, 0.5, help="Patinador con brazos extendidos.")
+        omega_ini = st.slider("Velocidad Angular Inicial ($\\omega_{ini}$, rad/s):", 0.1, 5.0, 1.0, 0.1, help="Velocidad de giro inicial.")
+    with col2:
+        I_final = st.slider("Momento de Inercia Final ($I_{final}$, kg·m²):", 0.1, 10.0, 1.0, 0.1, help="Patinador con brazos recogidos.")
+    
+    # --- Cálculos y Resultados ---
+    # L_inicial = L_final
+    L = I_ini * omega_ini
+    omega_final = L / I_final
+    K_ini = 0.5 * I_ini * omega_ini**2
+    K_final = 0.5 * I_final * omega_final**2
 
-    with col_p2:
-        st.subheader("Resultados de la Conservación")
-        
-        st.metric("Momento Angular ($L$)", f"{(I_inicial * omega_inicial):.2f} kg·m²/s (Constante)")
-        st.metric("Velocidad Angular Final ($\omega_{fin}$)", f"{omega_final:.2f} rad/s")
-        st.metric("Aumento de Velocidad", f"{aumento_velocidad:.1f} %")
-        st.metric("Trabajo Realizado ($\\Delta E_k$)", f"{(Ek_final - Ek_inicial):.2f} J")
-        
-        st.markdown("""
-        **Principio Físico:**
-        Cuando el torque externo neto es cero ($\\tau_{ext} = 0$), el **Momento Angular ($\mathbf{L}$) se conserva**.
-        Al disminuir el Momento de Inercia ($I$) (ej. brazos cerrados), la velocidad angular ($\omega$)
-        debe aumentar para compensar.
-        
-        **¡Ojo con la Energía!** La **Energía Cinética de Rotación ($E_k$) NO se conserva**; el aumento de $E_k$
-        proviene del trabajo interno realizado por el patinador al acercar sus brazos.
-        """)
-        
-    # --- Visualización (Plotly para énfasis) ---
-    st.subheader("Visualización Comparativa $I$ vs. $\\omega$")
-    fig_p = go.Figure(data=[
-        go.Bar(name='Inicial', x=['Inercia $I$ (kg·m²)', 'Velocidad $\\omega$ (rad/s)', 'Energía $E_k$ (J)'], y=[I_inicial, omega_inicial, Ek_inicial], marker_color='blue'),
-        go.Bar(name='Final', x=['Inercia $I$ (kg·m²)', 'Velocidad $\\omega$ (rad/s)', 'Energía $E_k$ (J)'], y=[I_final, omega_final, Ek_final], marker_color='red')
-    ])
-    fig_p.update_layout(barmode='group', title="Comparación de Estados Inicial y Final", height=400)
-    st.plotly_chart(fig_p, use_container_width=True)
+    st.markdown("---")
+    st.subheader("Análisis de la Conservación")
+    
+    st.latex(f"L_{{inicial}} = I_{{ini}} \\omega_{{ini}} = ({I_ini:.2f})({omega_ini:.2f}) = {L:.2f} \\, \\text{{kg}} \\cdot \\text{{m}}^2/\\text{{s}}")
+    st.latex(f"L_{{final}} = L_{{inicial}} \\Rightarrow \\omega_{{final}} = \\frac{{L_{{inicial}}}}{{I_{{final}}}} = \\frac{{{L:.2f}}}{{{I_final:.2f}}} = {omega_final:.2f} \\, \\text{{rad/s}}")
 
-# ====================================================================
-# --- PESTAÑA 4: Caso Extendido: Rodadura en Plano Inclinado ---
-# ====================================================================
-with tab4:
-    st.header("4. Rodadura de Formas en un Plano Inclinado (La Carrera)")
-    st.markdown("""
-    Simulación que compara la velocidad de objetos con diferentes geometrías (y, por tanto, diferentes
-    momentos de inercia) que ruedan sin deslizar por un plano inclinado.
+    st.info(f"""
+    * **Momento Angular Conservado ($L$):** **{L:.2f} kg·m²/s**.
+    * **Velocidad Angular Final ($\omega_{{final}}$):** **{omega_final:.2f} rad/s**. (¡El patinador gira más rápido!)
     """)
 
-    col_i1, col_i2 = st.columns([1, 2])
-    g_i4 = 9.81
-    
-    with col_i1:
-        st.subheader("Parámetros del Plano")
-        angulo_inclinacion = st.slider("Ángulo de Inclinación ($\\theta$, grados)", 5, 60, 30, 1)
-        longitud_plano = st.slider("Longitud del Plano Inclinado (L, m)", 1.0, 10.0, 5.0, 0.5)
-        st.markdown(f"**Altura Inicial ($h$):** ${longitud_plano * np.sin(np.radians(angulo_inclinacion)):.2f}$ m")
-    
-    # --- Cálculos ---
-    # a = g * sin(theta) / (1 + C), donde C = I / (M * R^2) es el factor inercial.
-    
-    formas_i4 = ["Esfera Sólida", "Cilindro Sólido/Disco", "Anillo/Cilindro Hueco"]
-    resultados_i4 = []
-    theta_rad = np.radians(angulo_inclinacion)
+    st.subheader("Análisis de la Energía Cinética de Rotación ($K_{rot}$)")
+    st.latex(f"K_{{rot, ini}} = \\frac{{1}}{{2}} I_{{ini}} \\omega_{{ini}}^2 = {K_ini:.2f} \\, \\text{{J}}")
+    st.latex(f"K_{{rot, final}} = \\frac{{1}}{{2}} I_{{final}} \\omega_{{final}}^2 = {K_final:.2f} \\, \\text{{J}}")
 
-    for nombre in formas_i4:
-        C = factor_inercial(nombre)
-        a_i4 = (g_i4 * np.sin(theta_rad)) / (1 + C)
-        t_i4 = np.sqrt(2 * longitud_plano / a_i4)
-        v_final_i4 = a_i4 * t_i4
+    st.error(f"La Energía Cinética FINAL es **{K_final:.2f} J** y es MAYOR que la INICIAL ({K_ini:.2f} J).")
+    st.subheader("Explicación Física")
+    st.markdown("""
+    * **Momento Angular:** Como el patinador (o el sistema) no tiene un torque externo neto, su momento angular $L$ se mantiene **constante**.
+    * **Relación $I - \\omega$:** Al **reducir** el momento de inercia ($I$) al acercar los brazos, la **velocidad angular ($\omega$) debe aumentar** para mantener $L$ constante ($L = I\omega$).
+    * **Energía Cinética:** La energía cinética de rotación **NO se conserva**. El trabajo para **reducir** el momento de inercia (al tirar de los brazos hacia adentro) es un **trabajo interno** que se convierte en la energía cinética de rotación extra.
+    """)
+
+# ------------------------------------------------------------
+---
+# ------------------------------------------------------------
+
+elif opcion == "4️⃣ Rodadura en Plano Inclinado (Extendido)":
+    st.header("4. Rodadura de Varias Formas por un Plano Inclinado ⛰️")
+    st.markdown("Compara el movimiento de rodadura pura (sin deslizamiento) de diferentes formas geométricas que descienden por un plano inclinado. El resultado es contraintuitivo, ¡solo importa la distribución de la masa!")
+    
+    # Controles de entrada
+    col1, col2 = st.columns(2)
+    with col1:
+        angulo = st.slider("Ángulo de Inclinación ($\\theta$, grados):", 5, 60, 30)
+        L_plano = st.slider("Longitud del Plano Inclinado ($L$, m):", 1.0, 10.0, 5.0)
+    with col2:
+        g = st.number_input("Aceleración de la Gravedad ($g$, m/s²):", 9.0, 10.0, 9.81)
+
+    # Convertir ángulo a radianes
+    theta_rad = np.deg2rad(angulo)
+
+    # Constantes de Momento de Inercia (C = I / (m*R^2))
+    # C_Disco = 0.5, C_Esfera = 2/5 = 0.4, C_Anillo = 1.0, C_Esfera_Hueca = 2/3 ≈ 0.667
+    formas_C = {
+        "Esfera Sólida (C=0.4)": 0.4,
+        "Disco/Cilindro Sólido (C=0.5)": 0.5,
+        "Esfera Hueca (C≈0.667)": 2/3,
+        "Cilindro Hueco (Anillo, C=1.0)": 1.0
+    }
+    
+    resultados = []
+    
+    for forma, C in formas_C.items():
+        # Aceleración lineal para rodadura pura
+        # a = g*sin(theta) / (1 + C)
+        a = (g * np.sin(theta_rad)) / (1 + C)
         
-        resultados_i4.append({
-            "Forma": nombre,
-            "Factor Inercial (C)": C,
-            "Aceleración ($a$, m/s²)": a_i4,
-            "Tiempo de Recorrido ($t$, s)": t_i4,
-            "Velocidad Final ($v$, m/s)": v_final_i4
+        # Tiempo para recorrer la distancia L: L = 0.5 * a * t^2
+        t = np.sqrt((2 * L_plano) / a)
+        
+        # Velocidad final: v = a * t
+        v_final = a * t
+        
+        resultados.append({
+            'Forma': forma,
+            'Aceleración (a, m/s²)': a,
+            'Tiempo de Descenso (t, s)': t,
+            'Velocidad Final (v, m/s)': v_final
         })
-
-    df_resultados = pd.DataFrame(resultados_i4)
-    df_resultados_sorted = df_resultados.sort_values(by="Tiempo de Recorrido ($t$, s)")
-    
-    with col_i2:
-        st.subheader("Tabla de Resultados y Ganador")
-        st.dataframe(df_resultados_sorted.set_index('Forma'))
-
-        st.markdown(f"""
-        **Explicación Fundamental:**
-        El objeto que gana la carrera es la **{df_resultados_sorted.iloc[0]['Forma']}** (Factor $C={df_resultados_sorted.iloc[0]['Factor Inercial (C)']:.1f}$),
-        ya que tiene la mayor aceleración lineal.
         
-        **¿Por qué?**
-        La Energía Potencial Inicial ($E_p = mgh$) se divide en Energía Cinética Traslacional ($E_{k,trasl}$)
-        y Rotacional ($E_{k,rot}$). El factor inercial $C$ determina qué parte de la energía se 'gasta' en rotación.
-        **A menor $C$ (masa más cerca del eje)**, más energía se dirige al movimiento lineal,
-        ¡lo que resulta en mayor aceleración y menor tiempo!
-        """)
-        
-    # --- Visualización de la Comparación de Tiempos (Plotly) ---
-    st.subheader("Gráfica: ¿Quién llega primero?")
-    fig_bar = px.bar(
-        df_resultados_sorted,
-        x="Forma",
-        y="Tiempo de Recorrido ($t$, s)",
-        title="Comparación del Tiempo Total de Rodadura",
-        color="Tiempo de Recorrido ($t$, s)",
-        color_continuous_scale=px.colors.sequential.Inferno_r,
-        labels={"Tiempo de Recorrido ($t$, s)": "Tiempo (s)"}
-    )
-    st.plotly_chart(fig_bar, use_container_width=True)
+    df_rodadura = pd.DataFrame(resultados).sort_values(by='Tiempo de Descenso (t, s)')
+
+    st.markdown("---")
+    st.subheader("Resultados de la Carrera")
+    st.dataframe(df_rodadura, hide_index=True, use_container_width=True)
+
+    st.subheader("Explicación Física: ¿Quién Gana la Carrera? 🏆")
+    st.markdown(f"""
+    * **Aceleración (a):** La aceleración lineal de la rodadura es $a = \\frac{{g \\sin(\\theta)}}{{1 + C}}$, donde $C = \\frac{{I}}{{MR^2}}$.
+    * **El Factor $C$:** Cuanto **menor** es la constante $C$ (es decir, menos masa está en el exterior), **mayor** es la aceleración $a$ y **menor** es el tiempo $t$.
+    * **Ganador:** La **Esfera Sólida** (C=0.4) gana la carrera porque tiene la menor distribución de masa lejos del eje. El **Cilindro Hueco (Anillo)** (C=1.0) es el más lento.
+    * **Independiente de la Masa/Radio:** Sorprendentemente, la aceleración y el tiempo **no dependen de la masa ($M$) ni del radio ($R$!)**; solo dependen de la *forma* ($C$) y el ángulo.
+    """)
+
+# ------------------------------------------------------------
+---
+# ----------------- Instrucciones de Implementación -----------------
+
+## 📝 Instrucciones de Implementación
+
+Para ejecutar esta aplicación en tu entorno local:
+
+1.  **Guarda el Código:** Guarda el código anterior en un archivo llamado `app_rotacion.py`.
+2.  **Abre la Terminal:** Navega hasta el directorio donde guardaste el archivo usando tu terminal (o Símbolo del Sistema/PowerShell).
+3.  **Ejecuta Streamlit:** Escribe el siguiente comando y presiona Enter:
+
+    ```bash
+    streamlit run app_rotacion.py
+    ```
+
+4.  **Abre el Navegador:** Streamlit abrirá automáticamente la aplicación en tu navegador web. Si no lo hace, copia la URL que aparece en la terminal (normalmente `http://localhost:8501`).
+
+¡Felicidades! Ahora tienes una aplicación interactiva completa para explorar la rotación de sólidos rígidos. ¿Hay algún detalle en alguna de las simulaciones que te gustaría ajustar o que te explique más a fondo?
