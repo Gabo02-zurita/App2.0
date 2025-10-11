@@ -152,7 +152,6 @@ if opcion == "📚 Conceptos Fundamentales (Cap. 9 y 10)":
     st.info("¡Usa el menú lateral para seleccionar una simulación y experimentar virtualmente!")
 
 # ------------------------------------------------------------
----
 # ------------------------------------------------------------
 
 elif opcion == "1️⃣ Torque y Dinámica Rotacional ($\\tau = I\\alpha$)":
@@ -245,7 +244,6 @@ elif opcion == "1️⃣ Torque y Dinámica Rotacional ($\\tau = I\\alpha$)":
 
 
 # ------------------------------------------------------------
----
 # ------------------------------------------------------------
 
 elif opcion == "2️⃣ Trabajo y Energía en Rotación (K = 1/2 I $\\omega^2$)":
@@ -295,7 +293,6 @@ elif opcion == "2️⃣ Trabajo y Energía en Rotación (K = 1/2 I $\\omega^2$)"
         """)
 
 # ------------------------------------------------------------
----
 # ------------------------------------------------------------
 
 elif opcion == "3️⃣ Conservación del Momento Angular ($L = I\\omega$)":
@@ -368,7 +365,6 @@ elif opcion == "3️⃣ Conservación del Momento Angular ($L = I\\omega$)":
 
 
 # ------------------------------------------------------------
----
 # ------------------------------------------------------------
 
 elif opcion == "4️⃣ Rodadura en Plano Inclinado (Energía y Aceleración)":
