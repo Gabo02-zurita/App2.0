@@ -442,4 +442,331 @@ elif opcion == "2️⃣ Energía: Cilindro con Masa Colgante":
                 y_masa = -R_cil - h_caida # Posición de la masa colgante
 
                 fig_3d = go.Figure(data=[
-                    # Cilind
+                    # Cilindro Rotando
+                    go.Surface(x=x_rot, y=y_rot, z=z_rot, colorscale='Blues', opacity=0.8, showscale=False),
+                    # Masa Colgante (Punto)
+                    go.Scatter3d(x=[x_masa], y=[y_masa], z=[0], mode='markers', marker=dict(size=8, color='red'), name='Masa'),
+                    # Cuerda (Línea)
+                    go.Scatter3d(x=[R_cil, R_cil], y=[-R_cil, y_masa], z=[0, 0], mode='lines', line=dict(color='black', width=2), name='Cuerda')
+                ])
+                
+                fig_3d.update_layout(
+                    title="Cilindro Girando y Masa Cayendo",
+                    scene_aspectmode='cube',
+                    scene=dict(
+                        xaxis=dict(range=[-R_cil*1.5, R_cil*1.5], visible=False),
+                        yaxis=dict(range=[-R_cil*2 - 0.5, R_cil], visible=False),
+                        zaxis=dict(range=[-height, height], visible=False),
+                        aspectratio=dict(x=1, y=1, z=0.5),
+                        camera=dict(eye=dict(x=1.5, y=1.5, z=0.5))
+                    ),
+                    margin=dict(l=0, r=0, b=0, t=40),
+                    height=350
+                )
+                
+                animation_placeholder.plotly_chart(fig_3d, use_container_width=True)
+                time.sleep(t_max / animation_steps / 2)
+        
+        # --- Gráfica de Conservación de Energía ---
+        st.subheader("Gráfica de Conservación de Energía")
+        fig_ener = px.line(
+            df_ener, 
+            x='Tiempo (s)', 
+            y=['Energía Rotacional (J)', 'Energía Traslacional (J)', 'Energía Potencial (J)', 'Energía Total (J)'], 
+            title='Flujo de Energía en el Sistema',
+            labels={'value': 'Energía (J)', 'variable': 'Tipo de Energía'},
+            color_discrete_map={
+                'Energía Rotacional (J)': 'blue',
+                'Energía Traslacional (J)': 'orange',
+                'Energía Potencial (J)': 'green',
+                'Energía Total (J)': 'red'
+            }
+        )
+        st.plotly_chart(fig_ener, use_container_width=True)
+
+
+# ---------------------------------------------------------------
+# ------------------------------------------------------------
+
+elif opcion == "3️⃣ Conservación del Momento Angular (Patinador)":
+    st.header("3. Conservación del Momento Angular (Patinador) ⛸️")
+    st.markdown("La animación muestra cómo la **disminución del Momento de Inercia ($I$)** al acercar la masa al eje, provoca un **aumento de la Velocidad Angular ($\\omega$)** para mantener el Momento Angular ($L$) constante.")
+    
+    # Controles de entrada
+    col1, col2 = st.columns(2)
+    with col1:
+        M_cuerpo = st.number_input("Masa del Patinador (kg):", 40.0, 100.0, 60.0, 1.0)
+        I_cuerpo = st.number_input("Inercia del Cuerpo Central ($I_{cm}$, kg·m²):", 0.5, 5.0, 1.0, 0.1, help="Inercia del torso/cabeza (constante).")
+        R_ext_i = st.slider("Radio Inicial de Brazos ($R_i$, m):", 0.5, 2.0, 1.5, 0.1)
+    with col2:
+        w_i = st.number_input("Velocidad Angular Inicial ($\\omega_i$, rad/s):", 0.1, 5.0, 1.0, 0.1)
+        R_ext_f = st.slider("Radio Final de Brazos ($R_f$, m):", 0.1, 1.0, 0.5, 0.1)
+        st.info("Asegúrate de que $R_f < R_i$ para ver el aumento de velocidad.")
+        
+    st.markdown("---")
+
+    # --- Cálculos ---
+    m_brazos = M_cuerpo * 0.2 
+    
+    I_i = I_cuerpo + m_brazos * R_ext_i**2
+    L_i = I_i * w_i
+    I_f = I_cuerpo + m_brazos * R_ext_f**2
+    w_f = L_i / I_f
+
+    # --- Animación del Patinador ---
+    col_vis, col_calc = st.columns([1, 1])
+    
+    with col_vis:
+        st.subheader("Animación: Conservación del Momento Angular")
+        animation_placeholder_patinador = st.empty()
+        
+        if st.button("▶️ Iniciar Contracción de Brazos", key="anim_patinador"):
+            
+            steps = 50
+            transition_time = 2.0 # Segundos para la transición
+            
+            # Interpolación lineal de R e I
+            R_steps = np.linspace(R_ext_i, R_ext_f, steps)
+            I_steps = I_cuerpo + m_brazos * R_steps**2
+            
+            # Cálculo de la nueva omega (L constante)
+            w_steps = L_i / I_steps 
+            
+            # Simulación de la rotación
+            theta_t = 0
+            
+            for i in range(steps):
+                R_actual = R_steps[i]
+                w_actual = w_steps[i]
+                
+                # Integrar el ángulo
+                theta_t += w_actual * (transition_time / steps)
+                
+                # Coordenadas de la masa (brazos)
+                x_mass = R_actual * np.cos(theta_t)
+                y_mass = R_actual * np.sin(theta_t)
+                
+                fig = go.Figure(data=[
+                    # Eje de rotación (Centro)
+                    go.Scatter(x=[0], y=[0], mode='markers', marker=dict(size=15, color='darkgray'), name='Torso'),
+                    # Masa Extrema (Brazos)
+                    go.Scatter(x=[x_mass, -x_mass], y=[y_mass, -y_mass], mode='markers', marker=dict(size=10, color='red'), name='Brazos'),
+                    # Brazos (Líneas)
+                    go.Scatter(x=[0, x_mass, 0, -x_mass], y=[0, y_mass, 0, -y_mass], mode='lines', line=dict(color='lightgray', width=2), showlegend=False)
+                ])
+                
+                fig.update_layout(
+                    title=f"R={R_actual:.2f}m → $\\omega$={w_actual:.2f} rad/s",
+                    xaxis=dict(range=[-R_ext_i*1.1, R_ext_i*1.1], title="Eje X (m)"),
+                    yaxis=dict(range=[-R_ext_i*1.1, R_ext_i*1.1], title="Eje Y (m)", scaleanchor="x", scaleratio=1),
+                    height=400,
+                    showlegend=False
+                )
+                
+                animation_placeholder_patinador.plotly_chart(fig, use_container_width=True)
+                time.sleep(transition_time / steps)
+                
+            st.success(f"Transición completa. $\\omega$ final: {w_f:.2f} rad/s")
+
+    with col_calc:
+        st.subheader("Análisis Físico Detallado")
+        st.markdown(f"""
+        | **Variable** | **Inicial ($R_i={R_ext_i:.1f}$m)** | **Final ($R_f={R_ext_f:.1f}$m)** |
+        | :---: | :---: | :---: |
+        | **Inercia ($I$)** | ${I_i:.2f}\\,\\text{{kg}}\\cdot\\text{{m}}^2$ | $\mathbf{{{I_f:.2f}}}\\,\\mathbf{{\\text{{kg}}\\cdot\\text{{m}}^2}}$ |
+        | **Velocidad ($\omega$)** | ${w_i:.2f}\\,\\text{{rad/s}}$ | $\\mathbf{{{w_f:.2f}}}\\;\\mathbf{{\\text{{rad/s}}}}$ |
+        | **Momento Angular ($L$)** | ${L_i:.2f}\\,\\text{{kg}}\\cdot\\text{{m}}^2/\\text{{s}}$ | ${L_i:.2f}\\,\\text{{kg}}\\cdot\\text{{m}}^2/\\text{{s}}$ |
+        """)
+        
+        K_i = 0.5 * I_i * w_i**2
+        K_f = 0.5 * I_f * w_f**2
+        delta_K = K_f - K_i
+        st.info(f"Se realiza trabajo interno (músculos) para contraer los brazos, incrementando la Energía Cinética: $\\Delta K = +{delta_K:.4f}\\,\\text{{J}}$")
+        
+        fig_L = go.Figure(data=[
+            go.Bar(name='Inercia (I)', x=['Inicial', 'Final'], y=[I_i, I_f], yaxis='y1', offsetgroup=1, marker_color='skyblue'),
+            go.Bar(name='Velocidad (ω)', x=['Inicial', 'Final'], y=[w_i, w_f], yaxis='y2', offsetgroup=2, marker_color='lightcoral')
+        ])
+        fig_L.update_layout(
+            title='Relación Inversa I vs. ω',
+            yaxis=dict(title='Inercia (kg·m²)', side='left', showgrid=False),
+            yaxis2=dict(title='Velocidad Angular (rad/s)', overlaying='y', side='right', showgrid=False)
+        )
+        st.plotly_chart(fig_L, use_container_width=True)
+
+
+# ---------------------------------------------------------------
+# ------------------------------------------------------------
+
+elif opcion == "4️⃣ Casos Extendidos y Rodadura":
+    st.header("4. Casos Extendidos: Rodadura, Energía y Sistemas Acoplados 🧩")
+    
+    tab1, tab2, tab3 = st.tabs(["Rodadura en Plano Inclinado", "Eje con Discos Acoplados", "Análisis de Energía Compuesta"])
+    
+    # --- Pestaña 1: Rodadura en Plano Inclinado ---
+    with tab1:
+        st.subheader("Carrera de Inercia: ¿Quién Rueda Más Rápido? 🥇")
+        st.markdown("La animación simula una carrera entre tres objetos. El que tenga la menor **inercia relativa** ($c = I_{{cm}}/MR^2$) convierte más rápido $U$ en $K_{{tras}}$ y, por lo tanto, gana.")
+        
+        col_r1, col_r2 = st.columns(2)
+        with col_r1:
+            angulo_rod = st.slider("Ángulo del Plano ($\\theta$, grados):", 5, 90, 30, 1, key="angulo_rod")
+            altura_rod = st.number_input("Altura Vertical ($h$, m):", 0.1, 5.0, 1.0, 0.1, key="altura_rod")
+        
+        g = 9.81
+        angulo_rad = np.radians(angulo_rod)
+        S_total = altura_rod / np.sin(angulo_rad)
+        
+        # Geometrías a comparar: c = I_cm / M R^2
+        formas_c = {
+            "Esfera Sólida (c=0.4)": 0.4,
+            "Disco Sólido (c=0.5)": 0.5,
+            "Cilindro Hueco (c=1.0)": 1.0,
+        }
+        
+        datos_carrera = []
+        carrera_params = {}
+        for forma, c in formas_c.items():
+            a_cm = (g * np.sin(angulo_rad)) / (1 + c)
+            t_fin = np.sqrt(2 * S_total / a_cm) if a_cm > 0 else 999.0
+            
+            datos_carrera.append({
+                'Forma': forma,
+                'Factor c': c,
+                'Aceleración ($a_{cm}$, m/s²)': a_cm,
+                'Tiempo de Bajada (s)': t_fin
+            })
+            carrera_params[forma] = {'a': a_cm, 't_final': t_fin}
+            
+        df_carrera = pd.DataFrame(datos_carrera).sort_values(by='Tiempo de Bajada (s)', ascending=True).reset_index(drop=True)
+        
+        st.dataframe(df_carrera, use_container_width=True, hide_index=True)
+        
+        # --- Animación de la Carrera ---
+        st.subheader("Simulación Visual de la Carrera")
+        animation_placeholder_carrera = st.empty()
+        
+        if st.button("🏁 Iniciar Carrera", key="anim_carrera"):
+            T_max_sim = df_carrera['Tiempo de Bajada (s)'].max() # Tiempo que tarda el más lento
+            steps = 100
+            time_steps = np.linspace(0, T_max_sim, steps)
+            
+            x_start = 0.0
+            y_start = 0.0
+            
+            for t in time_steps:
+                posiciones = {'Forma': [], 'Posición (X)': [], 'Posición (Y)': []}
+                
+                # Calcular la posición de cada cuerpo
+                for forma, params in carrera_params.items():
+                    a = params['a']
+                    # Posición a lo largo del plano inclinado (S)
+                    S_t = 0.5 * a * t**2 if t <= params['t_final'] else S_total 
+                    
+                    # Convertir S a coordenadas X e Y
+                    X_t = x_start + S_t * np.cos(angulo_rad)
+                    Y_t = y_start - S_t * np.sin(angulo_rad)
+                    
+                    posiciones['Forma'].append(forma)
+                    posiciones['Posición (X)'].append(X_t)
+                    posiciones['Posición (Y)'].append(Y_t)
+
+                df_pos = pd.DataFrame(posiciones)
+                
+                # Crear la gráfica del plano inclinado y la posición de los cuerpos
+                X_plano = [x_start, x_start + S_total * np.cos(angulo_rad)]
+                Y_plano = [y_start, y_start - S_total * np.sin(angulo_rad)]
+                
+                fig_carrera = go.Figure()
+                fig_carrera.add_trace(go.Scatter(x=X_plano, y=Y_plano, mode='lines', name='Plano Inclinado', line=dict(color='gray', width=3)))
+                
+                for forma in df_pos['Forma'].unique():
+                    df_body = df_pos[df_pos['Forma'] == forma]
+                    symbol = 'circle' if 'Esfera' in forma else 'square' if 'Disco' in forma else 'star'
+                    # FIX: La línea incompleta estaba aquí. Se completa la expresión ternaria:
+                    color = 'green' if 'Esfera' in forma else 'orange' if 'Disco' in forma else 'blue'
+                    
+                    fig_carrera.add_trace(go.Scatter(
+                        x=df_body['Posición (X)'], 
+                        y=df_body['Posición (Y)'], 
+                        mode='markers', 
+                        name=forma,
+                        marker=dict(size=15, symbol=symbol, color=color)
+                    ))
+                
+                fig_carrera.update_layout(
+                    title=f"Tiempo: {t:.2f} s. Ganador Parcial: {df_carrera.iloc[0]['Forma']}",
+                    xaxis=dict(range=[0, X_plano[1] * 1.1], title="Distancia Horizontal (m)", visible=False),
+                    yaxis=dict(range=[Y_plano[1] * 1.1, 0], title="Altura (m)", scaleanchor="x", scaleratio=1),
+                    height=450
+                )
+                
+                animation_placeholder_carrera.plotly_chart(fig_carrera, use_container_width=True)
+                time.sleep(T_max_sim / steps / 2)
+            
+            st.success(f"¡Carrera finalizada! El ganador es: **{df_carrera.iloc[0]['Forma']}**")
+
+    # --- Pestaña 2: Eje con Discos Acoplados ---
+    with tab2:
+        st.subheader("Colisión Angular Inelástica (Acoplamiento de Discos) 🔗")
+        st.markdown("El **Momento Angular se conserva** ($L_i=L_f$), pero la energía se pierde ($K_f < K_i$) debido a la fricción durante el acoplamiento.")
+        
+        col_c1, col_c2 = st.columns(2)
+        with col_c1:
+            st.markdown("#### Disco 1 (Inicialmente Girando)")
+            M1 = st.number_input("Masa $M_1$ (kg):", 0.1, 10.0, 5.0, 0.1, key="M1")
+            R1 = st.number_input("Radio $R_1$ (m):", 0.1, 1.0, 0.5, 0.1, key="R1")
+            w1_i = st.number_input("Vel. Angular Inicial $\\omega_{1i}$ (rad/s):", 0.1, 10.0, 4.0, 0.1, key="w1i")
+        
+        with col_c2:
+            st.markdown("#### Disco 2 (Inicialmente en Reposo)")
+            M2 = st.number_input("Masa $M_2$ (kg):", 0.1, 10.0, 3.0, 0.1, key="M2")
+            R2 = st.number_input("Radio $R_2$ (m):", 0.1, 1.0, 0.4, 0.1, key="R2")
+            
+            # --- Cálculos de Acoplamiento ---
+            I1 = 0.5 * M1 * R1**2
+            I2 = 0.5 * M2 * R2**2
+            L_i = I1 * w1_i
+            I_f = I1 + I2
+            w_f = L_i / I_f
+            K_i = 0.5 * I1 * w1_i**2
+            K_f = 0.5 * I_f * w_f**2
+            K_perdida = K_i - K_f
+
+            st.metric(label="Velocidad Angular Final ($\omega_f$)", value=f"{w_f:.3f} rad/s")
+            st.metric(label="Pérdida de Energía Cinética ($\Delta K$)", value=f"{-K_perdida:.3f} J", delta=f"{-K_perdida:.3f} J (Perdida)")
+
+    # --- Pestaña 3: Cálculo de Energías en Rotación ---
+    with tab3:
+        st.subheader("Cálculo de Energía Cinética Total ($K_{{Total}}$)")
+        st.markdown("Separa las contribuciones de **traslación** ($K_{{tras}}$) y **rotación** ($K_{{rot}}$) para un cuerpo en movimiento (Cap. 9).")
+        
+        col_e1, col_e2 = st.columns(2)
+        with col_e1:
+            forma_e = st.selectbox("Forma del Objeto:", ("Disco/Cilindro Sólido", "Esfera Sólida"), key="forma_e")
+            M_e = st.number_input("Masa ($M$, kg):", 0.1, 10.0, 5.0, 0.1, key="M_e")
+            R_e = st.number_input("Radio ($R$, m):", 0.1, 1.0, 0.2, 0.1, key="R_e")
+        with col_e2:
+            v_cm_e = st.number_input("Velocidad de Traslación ($v_{cm}$, m/s):", 0.1, 10.0, 2.0, 0.1, key="v_cm_e")
+            # Rodadura Pura
+            rodadura = st.checkbox("Rodadura Pura ($v_{cm} = R\\omega$)", value=True)
+            if rodadura:
+                w_e = v_cm_e / R_e
+                st.markdown(f"Vel. Angular ($\\omega$): **{w_e:.2f} rad/s**")
+            else:
+                w_e = st.number_input("Velocidad Angular ($\\omega$, rad/s):", 0.1, 20.0, 5.0, 0.1, key="w_e")
+                
+        I_e = calcular_momento_inercia(forma_e, M_e, R_e)
+        K_tras = 0.5 * M_e * v_cm_e**2
+        K_rot = 0.5 * I_e * w_e**2
+        K_total = K_tras + K_rot
+        
+        st.markdown("---")
+        st.latex(f"I = {I_e:.4f} \\, \\text{{kg}} \\cdot \\text{{m}}^2")
+        
+        fig_K = px.pie(
+            names=['Traslación', 'Rotación'], 
+            values=[K_tras, K_rot], 
+            title=f'Distribución de Energía Total ({K_total:.2f} J)'
+        )
+        st.plotly_chart(fig_K, use_container_width=True)
