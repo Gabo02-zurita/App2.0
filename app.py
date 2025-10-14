@@ -783,3 +783,5 @@ with st.container():
             st.plotly_chart(fig_K, use_container_width=True)
 
     st.markdown('</div>', unsafe_allow_html=True) # Cierre del main-container
+    st.markdown("---")
+st.markdown("Desarrollado por Grupo E  para  Física 2.")
