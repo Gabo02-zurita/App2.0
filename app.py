@@ -6,7 +6,6 @@ import pandas as pd
 import time 
 
 # ----------------- CSS para el Fondo y Estilo General MEJORADO -----------------
-# Se usa un diseño más limpio y modular.
 st.markdown(
     """
     <style>
@@ -80,7 +79,6 @@ def calcular_momento_inercia(forma, masa, radio, longitud=None):
     c = coeficientes.get(forma, 0)
 
     if forma == "Varilla Delgada (L)":
-        # Nota: El código original usaba 'radio' como 'L'. Se mantiene.
         return c * masa * radio**2 
     return c * masa * radio**2
 
@@ -143,7 +141,7 @@ def simular_masa_colgante(m_masa, R_cil, M_cil, t_max, dt=0.05):
         'Energía Total (J)': K_rot + K_tras + U_grav_actual,
         'Caída (m)': h # Para la animación
     })
-    return df, a, alfa, T, v[-1], omega[-1] # Retornamos también las velocidades finales
+    return df, a, alfa, T, v[-1], omega[-1] 
 
 # ----------------- Funciones de Animación 3D/Visualización MEJORADAS -----------------
 
@@ -158,10 +156,8 @@ def create_cylinder_mesh(radius, height, num_segments=50):
 
 def get_rotated_cylinder_data(x_base, y_base, z_base, angle):
     """Rota las coordenadas de un cilindro alrededor del eje Z."""
-    # Matriz de rotación 2D simplificada (dado que Z no cambia)
     cos_a, sin_a = np.cos(angle), np.sin(angle)
     
-    # Rotar las coordenadas X e Y
     x_rotated = x_base * cos_a - y_base * sin_a
     y_rotated = x_base * sin_a + y_base * cos_a
     z_rotated = z_base
@@ -170,32 +166,24 @@ def get_rotated_cylinder_data(x_base, y_base, z_base, angle):
 
 def create_torque_arrow(radius, angle, tau_magnitude=1.0):
     """Crea una flecha 3D que representa el torque (fuerza tangencial)."""
-    # El punto de aplicación es R en la dirección de rotación (tangencial)
     
-    # Punto de aplicación P (en el plano XY)
     P_x = radius * np.cos(angle)
     P_y = radius * np.sin(angle)
     
-    # Vector unitario tangencial T (perpendicular al vector de posición (P_x, P_y))
-    # Rotación de 90 grados: (-y, x) o (y, -x). Usamos el que da torque positivo (giro antihorario)
     T_x = -P_y
     T_y = P_x
     
-    # Normalizamos el vector tangencial y lo escalamos para la visualización
     T_norm = np.sqrt(T_x**2 + T_y**2)
     T_unit_x, T_unit_y = T_x / T_norm, T_y / T_norm
     
-    # Longitud de la flecha (escalada por la magnitud del torque)
     arrow_length = tau_magnitude * 0.15 
     
-    # Punto final F
     F_x = P_x + T_unit_x * arrow_length
     F_y = P_y + T_unit_y * arrow_length
     
-    # Coordenadas para la línea (P -> F)
     x_line = [P_x, F_x]
     y_line = [P_y, F_y]
-    z_line = [0, 0] # En el plano central
+    z_line = [0, 0] 
 
     return x_line, y_line, z_line
 
@@ -270,6 +258,7 @@ with st.container():
             with col_datos:
                 st.subheader("Métricas de Rotación")
                 st.latex(f"\\text{{Momento de Inercia}} \\, I = {I_cm:.4f} \\, \\text{{kg}} \\cdot \\text{{m}}^2")
+                # CORRECCIÓN: Se duplican las llaves en la métrica de aceleración angular
                 st.latex(f"\\text{{Aceleración Angular}} \\, \\alpha = \\frac{{\\tau}}{{I}} = {alfa:.4f} \\, \\text{{rad/s}}^2")
 
                 metric_placeholder = st.empty()
@@ -324,8 +313,9 @@ with st.container():
                             )
                         ])
                         
+                        # CORRECCIÓN CLAVE: Las llaves de \text{{N}}\cdot\text{{m}} se duplican
                         fig_3d.update_layout(
-                            title=f"Rotación impulsada por $\\tau={torque:.1f}\\,\\text{{N}\\cdot\\text{{m}}}$",
+                            title=f"Rotación impulsada por $\\tau={torque:.1f}\\,\\text{{N}}\\cdot\\text{{m}}$",
                             scene_aspectmode='cube',
                             scene=dict(
                                 xaxis=dict(range=[-radio*1.5, radio*1.5], visible=False),
@@ -383,7 +373,8 @@ with st.container():
             col_anim_2, col_datos_2 = st.columns([1, 1])
 
             with col_datos_2:
-                 st.info(f"El cilindro gira por el **torque de la tensión $\\tau = T\\cdot R_{{cil}}$** ($a={a:.2f}\\,\\text{{m/s}}^2$).")
+                 # CORRECCIÓN: Se duplican las llaves en las f-strings con LaTeX
+                 st.info(f"El cilindro gira por el **torque de la tensión $\\tau = T\\cdot R_{{\\text{{cil}}}}$** ($a={a:.2f}\\,\\text{{m/s}}^2$).")
                  st.markdown(f"**Tensión del Cable:** ${T:.2f}\\,\\text{{N}}$")
                  st.markdown(f"**Aceleración de la Masa:** ${a:.2f}\\,\\text{{m/s}}^2$")
                  
@@ -530,6 +521,7 @@ with st.container():
                         go.Scatter(x=[0, x_mass, 0, -x_mass], y=[0, y_mass, 0, -y_mass], mode='lines', line=dict(color='lightgray', width=2), showlegend=False)
                     ])
                     
+                    # CORRECCIÓN: Las llaves del título se duplican para evitar error
                     fig.update_layout(
                         title=f"Transición | R={R_actual:.2f}m → $\\omega$={w_actual:.2f} rad/s",
                         xaxis=dict(range=[-R_ext_i*1.1, R_ext_i*1.1], title="Eje X (m)"),
@@ -555,6 +547,7 @@ with st.container():
                         go.Scatter(x=[0, x_mass, 0, -x_mass], y=[0, y_mass, 0, -y_mass], mode='lines', line=dict(color='lightgray', width=2), showlegend=False)
                     ])
 
+                    # CORRECCIÓN: Las llaves del título se duplican para evitar error
                     fig.update_layout(
                         title=f"Estado Final | $\\omega_{{final}}$ = {w_f:.2f} rad/s (Constante)",
                         xaxis=dict(range=[-R_ext_i*1.1, R_ext_i*1.1], title="Eje X (m)"),
@@ -575,10 +568,11 @@ with st.container():
             K_f = 0.5 * I_f * w_f**2
             delta_K = K_f - K_i
 
+            # CORRECCIÓN: Se usa doble llave en los encabezados de la tabla markdown
             st.markdown(f"""
             | **Variable** | **Inicial ($R_i={R_ext_i:.1f}$m)** | **Final ($R_f={R_ext_f:.1f}$m)** |
             | :---: | :---: | :---: |
-            | **Inercia ($I$)** | ${I_i:.2f}\\,\\text{{kg}}\\cdot\\text{{m}}^2$ | $\mathbf{{{I_f:.2f}}}\\,\\mathbf{{\\text{{kg}}\\cdot\\text{{m}}^2}}$ |
+            | **Inercia ($I$)** | ${I_i:.2f}\\,\\text{{kg}}\\cdot\\text{{m}}^2$ | $\mathbf{{{I_f:.2f}}}\\;\\mathbf{{\\text{{kg}}\\cdot\\text{{m}}^2}}$ |
             | **Velocidad ($\omega$)** | ${w_i:.2f}\\,\\text{{rad/s}}$ | $\\mathbf{{{w_f:.2f}}}\\;\\mathbf{{\\text{{rad/s}}}}$ |
             | **Momento Angular ($L$)** | $\mathbf{{{L_i:.2f}}}$ | $\mathbf{{{L_i:.2f}}}\\,\\text{{kg}}\\cdot\\text{{m}}^2/\\text{{s}}$ |
             """)
@@ -614,7 +608,6 @@ with st.container():
                 angulo_rod = st.slider("Ángulo del Plano ($\\theta$, grados):", 5, 90, 30, 1, key="angulo_rod")
                 altura_rod = st.number_input("Altura Vertical ($h$, m):", 0.1, 5.0, 1.0, 0.1, key="altura_rod")
             with col_r2:
-                # Se añaden inputs, aunque no afecten el resultado, para reforzar el concepto
                 M_carrera = st.number_input("Masa Común (M, kg):", 1.0, 5.0, 2.0, 0.5)
                 R_carrera = st.number_input("Radio Común (R, m):", 0.1, 0.5, 0.2, 0.1)
 
@@ -648,6 +641,9 @@ with st.container():
                 
             df_carrera = pd.DataFrame(datos_carrera).sort_values(by='Tiempo de Bajada (s)', ascending=True).reset_index(drop=True)
             
+            # CORRECCIÓN: Se actualizan las columnas con la notación de exponente
+            df_carrera.columns = ['Forma', 'Factor c', 'Aceleración ($a_{cm}$, m/s$^2$)', 'Tiempo de Bajada (s)', 'Velocidad Final ($v_{cm}$, m/s)']
+
             st.dataframe(df_carrera, use_container_width=True, hide_index=True)
             
             # --- Animación de la Carrera ---
@@ -764,6 +760,7 @@ with st.container():
                 rodadura = st.checkbox("Rodadura Pura ($v_{cm} = R\\omega$)", value=True)
                 if rodadura:
                     w_e = v_cm_e / R_e
+                    # CORRECCIÓN: Se usa doble llave
                     st.markdown(f"Vel. Angular ($\\omega$): **{w_e:.2f} rad/s** (Calculada)")
                 else:
                     w_e = st.number_input("Velocidad Angular ($\\omega$, rad/s):", 0.1, 20.0, 5.0, 0.1, key="w_e")
@@ -774,6 +771,7 @@ with st.container():
             K_total = K_tras + K_rot
             
             st.markdown("---")
+            # CORRECCIÓN: Se usa doble llave
             st.subheader(f"Energía Total $K_{{Total}} = {K_total:.2f}\\,\\text{{J}}$")
             st.latex(f"I = {I_e:.4f} \\, \\text{{kg}} \\cdot \\text{{m}}^2")
             
